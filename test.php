@@ -1,3 +1,5 @@
+<?php
+
 class OrderProcessor {
  
     public function __construct(BillerInterface $biller)
@@ -34,3 +36,4 @@ class OrderProcessor {
     }
 
 }
+
