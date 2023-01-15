@@ -9,43 +9,47 @@ class OrderProcessor {
 
     public function process(Order $order)
     {
-        $recent = $this->getRecentOrderCount($order);
+        $recent = $this->getRecentOrderCount($order->account->id);
 
         if ($recent > 0)
         {
             throw new Exception('Duplicate order likely.');
         }
 
-        /*
-        Alan: 從這之後的程式應該都要執行, 所以以下可整個抽出成function
-        */
-
-        $this->biller->bill($order->account->id, $order->amount);
-
-        /*
-        Alan: 這裡可考慮抽成function, 並只傳入id與aomount, 不用整個$order傳入
-        */
-        DB::table('orders')->insert(array(
-            'account'    => $order->account->id,
-            'amount'     => $order->amount;
-            'created_at' => Carbon::now();
-        ));
+        $this->doProcess($order->account->id, $order->amount);
     }
 
-    /*
-    Alan: 可考慮只傳入$order->account->id, 不用整個$order傳入
-    */
-    protected function getRecentOrderCount(Order $order)
+    protected function getRecentOrderCount($id)
     {
-        /*
-        Alan: 這行意義不夠明確, 建議寫註解, 說明為何用5, 也可考慮抽成function回傳$timestamp,即使只有1行, 因為這是一個獨立邏輯
-        */
-        $timestamp = Carbon::now()->subMinutes(5);
+        $timestamp = $this->getTimeStamp();
 
         return DB::table('orders')
-            ->where('account', $order->account->id)
+            ->where('account', $id)
             ->where('created_at', '>=', $timestamps)
             ->count();
+    }
+
+    private function getTimeStamp()
+    {
+        /*
+        todo: 這行意義不夠明確, 建議寫註解, 說明為何用5
+        */
+        $result = Carbon::now()->subMinutes(5);
+
+        return $result;
+    }
+
+    private function doProcess($id, $amount)
+    {
+        $this->biller->bill($id, $amount);
+
+        $data = array(
+            'account'    => $id,
+            'amount'     => $amount;
+            'created_at' => Carbon::now();
+        );
+
+        DB::table('orders')->insert($data);
     }
 
 }
